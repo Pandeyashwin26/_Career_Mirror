@@ -30,6 +30,11 @@ Option A — Deploy via Nixpacks (recommended)
    - Railway will build with Nixpacks and run startCommand from railway.toml (npm start)
    - Healthcheck: GET /health
 
+Optional: GitHub Actions auto-deploy
+- A workflow is included at .github/workflows/deploy-railway.yml
+- Set these repo secrets in GitHub: RAILWAY_TOKEN (required), RAILWAY_PROJECT_ID (optional), RAILWAY_ENVIRONMENT (optional)
+- Push to main to trigger build and deploy (deploy step runs only if RAILWAY_TOKEN is present)
+
 Option B — Deploy via Dockerfile
 1) When creating the service, choose Docker and let Railway build with the provided Dockerfile
 2) Set the same environment variables as above
