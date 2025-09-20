@@ -53,10 +53,10 @@ export default function Navigation() {
             >
               My Profile
             </Link>
-            <a href="#" className="text-muted-foreground hover:text-foreground transition-colors">
+            <a href="/#classes" className="text-muted-foreground hover:text-foreground transition-colors">
               Find Classes
             </a>
-            <a href="#" className="text-muted-foreground hover:text-foreground transition-colors">
+            <a href="/#career-guidance" className="text-muted-foreground hover:text-foreground transition-colors">
               Career Guidance
             </a>
           </div>

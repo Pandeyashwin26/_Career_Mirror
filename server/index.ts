@@ -1,8 +1,12 @@
+import dotenv from 'dotenv';
 import express, { type Request, Response } from "express";
 import session from "express-session";
 import { log, setupVite, serveStatic } from "./vite";
 import { registerRoutes } from "./routes";
 import { initDb } from "./db";
+
+// Load environment variables
+dotenv.config();
 
 const app = express();
 const port = parseInt(process.env.PORT || '5000');

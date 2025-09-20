@@ -5,9 +5,9 @@ export default function Sidebar() {
 
   const navItems = [
     { href: "/", icon: "fas fa-home", label: "Dashboard" },
-    { href: "#", icon: "fas fa-search", label: "Find Classes" },
+    { href: "/#classes", icon: "fas fa-search", label: "Find Classes" },
     { href: "/career-map", icon: "fas fa-route", label: "Career Map" },
-    { href: "#", icon: "fas fa-users", label: "Doppelgängers" },
+    { href: "/#doppelgangers", icon: "fas fa-users", label: "Doppelgängers" },
     { href: "/achievements", icon: "fas fa-trophy", label: "Achievements" },
     { href: "/lifestyle", icon: "fas fa-chart-pie", label: "Lifestyle" },
     { href: "/profile", icon: "fas fa-user", label: "Profile" },
@@ -21,7 +21,7 @@ export default function Sidebar() {
             {navItems.map((item) => {
               const isActive = item.href === location;
               
-              if (item.href === "#") {
+              if (item.href.startsWith("/#")) {
                 return (
                   <a
                     key={item.label}

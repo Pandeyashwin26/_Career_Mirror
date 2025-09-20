@@ -187,7 +187,7 @@ export default function Dashboard() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               <div className="lg:col-span-2 space-y-8">
                 {/* Available Classes Section */}
-                <section>
+<section id="classes" className="scroll-mt-24">
                   <div className="flex items-center justify-between mb-6">
                     <h2 className="text-2xl font-semibold text-foreground">Recommended Classes & Workshops</h2>
                     <div className="flex items-center text-sm text-muted-foreground">
@@ -226,7 +226,7 @@ export default function Dashboard() {
                 </section>
 
                 {/* Career Doppelgängers Section */}
-                <section>
+<section id="doppelgangers" className="scroll-mt-24">
                   <h2 className="text-2xl font-semibold text-foreground mb-6">Your Career Doppelgängers</h2>
                   <Card className="border-border">
                     <CardHeader>
@@ -282,10 +282,12 @@ export default function Dashboard() {
                 />
 
                 {/* AI Career Guidance */}
-                <AIGuidance
-                  guidance={(dashboardData as any)?.latestGuidance}
-                  userProfile={(dashboardData as any)?.profile}
-                />
+<section id="career-guidance" className="scroll-mt-24">
+                  <AIGuidance
+                    guidance={(dashboardData as any)?.latestGuidance}
+                    userProfile={(dashboardData as any)?.profile}
+                  />
+                </section>
               </div>
             </div>
           </div>

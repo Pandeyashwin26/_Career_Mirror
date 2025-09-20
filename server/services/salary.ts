@@ -1,4 +1,5 @@
 import { storage } from "../storage";
+import { blsAPIService } from "./blsAPI";
 import type { SalaryCache, InsertSalaryCache } from "@shared/schema";
 
 export interface SalaryData {
@@ -42,8 +43,8 @@ export class SalaryService {
         };
       }
 
-      // Fetch from BLS or other APIs
-      const salaryData = await this.fetchFromBLS(role, location);
+      // Fetch from real BLS API first, then fallback to estimates
+      const salaryData = await this.fetchFromRealBLS(role, location);
       
       if (salaryData) {
         // Cache the result
@@ -99,27 +100,40 @@ export class SalaryService {
     }
   }
 
-  private async fetchFromBLS(role: string, location: string): Promise<SalaryData | null> {
+  private async fetchFromRealBLS(role: string, location: string): Promise<SalaryData | null> {
     try {
-      // In a real implementation, this would call the BLS API
-      // For now, we'll generate realistic estimates based on role and location
-      const baseSalaries = this.getBaseSalaryEstimates(role);
-      const locationMultiplier = this.getLocationMultiplier(location);
-
-      return {
-        role,
-        location,
-        p25: Math.round(baseSalaries.base * 0.8 * locationMultiplier),
-        median: Math.round(baseSalaries.base * locationMultiplier),
-        p75: Math.round(baseSalaries.base * 1.3 * locationMultiplier),
-        currency: "USD",
-        source: "bls",
-        dataYear: new Date().getFullYear(),
-      };
+      // Try to get real BLS data first
+      const realBLSData = await blsAPIService.getSalaryData(role, location);
+      
+      if (realBLSData) {
+        console.log(`Successfully fetched real BLS data for ${role} in ${location}`);
+        return realBLSData;
+      }
+      
+      // Fallback to intelligent estimates if BLS API fails or has no data
+      console.log(`Falling back to estimates for ${role} in ${location}`);
+      return this.generateIntelligentEstimates(role, location);
+      
     } catch (error) {
-      console.error("Error fetching from BLS:", error);
-      return null;
+      console.error("Error fetching salary data:", error);
+      return this.generateIntelligentEstimates(role, location);
     }
+  }
+  
+  private generateIntelligentEstimates(role: string, location: string): SalaryData {
+    const baseSalaries = this.getBaseSalaryEstimates(role);
+    const locationMultiplier = this.getLocationMultiplier(location);
+
+    return {
+      role,
+      location,
+      p25: Math.round(baseSalaries.base * 0.8 * locationMultiplier),
+      median: Math.round(baseSalaries.base * locationMultiplier),
+      p75: Math.round(baseSalaries.base * 1.3 * locationMultiplier),
+      currency: "USD",
+      source: "estimate", // Changed from "bls" to "estimate" to be transparent
+      dataYear: new Date().getFullYear(),
+    };
   }
 
   private async calculateLifestyleMetrics(role: string, location: string): Promise<Omit<LifestyleMetrics, 'salary'>> {
