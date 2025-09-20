@@ -39,14 +39,18 @@ export default function Dashboard() {
     }
   }, [isAuthenticated, isLoading, toast]);
 
-  const { data: dashboardData, isLoading: isDashboardLoading, error } = useQuery({
+  const { data: dashboardData, isLoading: isDashboardLoading, error, refetch: refetchDashboard } = useQuery({
     queryKey: ["/api/dashboard"],
     enabled: isAuthenticated,
     retry: false,
   });
 
+  const classQueryParams: Record<string, string> = { search: searchQuery };
+  if (selectedCategory && selectedCategory !== "All") classQueryParams.category = selectedCategory;
+  if (selectedLocation && selectedLocation !== "Near") classQueryParams.location = selectedLocation;
+
   const { data: classes, refetch: refetchClasses } = useQuery({
-    queryKey: ["/api/classes/recommended", { search: searchQuery, category: selectedCategory, location: selectedLocation }],
+    queryKey: ["/api/classes/recommended", classQueryParams],
     enabled: isAuthenticated,
     retry: false,
   });
@@ -87,15 +91,25 @@ export default function Dashboard() {
   }
 
   if (!dashboardData) {
+    // If data hasn't arrived yet, show the loading skeleton instead of a hard error.
     return (
       <div className="min-h-screen bg-background">
         <Navigation />
         <div className="flex">
           <Sidebar />
           <main className="lg:pl-64 flex-1 p-8">
-            <div className="text-center">
-              <h2 className="text-2xl font-semibold text-foreground">Unable to load dashboard</h2>
-              <p className="text-muted-foreground mt-2">Please try refreshing the page.</p>
+            <div className="animate-pulse space-y-6">
+              <div className="h-8 bg-muted rounded w-1/3"></div>
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div className="lg:col-span-2 space-y-6">
+                  <div className="h-48 bg-muted rounded-xl"></div>
+                  <div className="h-96 bg-muted rounded-xl"></div>
+                </div>
+                <div className="space-y-6">
+                  <div className="h-48 bg-muted rounded-xl"></div>
+                  <div className="h-48 bg-muted rounded-xl"></div>
+                </div>
+              </div>
             </div>
           </main>
         </div>
@@ -155,7 +169,7 @@ export default function Dashboard() {
                           <SelectValue placeholder="All Categories" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">All Categories</SelectItem>
+                          <SelectItem value="All">All Categories</SelectItem>
                           <SelectItem value="Programming">Programming</SelectItem>
                           <SelectItem value="Design">Design</SelectItem>
                           <SelectItem value="Business">Business</SelectItem>
@@ -168,7 +182,7 @@ export default function Dashboard() {
                           <SelectValue placeholder="Near Me" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">Near Me</SelectItem>
+                          <SelectItem value="Near">Near Me</SelectItem>
                           <SelectItem value="Online">Online</SelectItem>
                           <SelectItem value="Downtown Campus">Downtown Campus</SelectItem>
                           <SelectItem value="North Campus">North Campus</SelectItem>
