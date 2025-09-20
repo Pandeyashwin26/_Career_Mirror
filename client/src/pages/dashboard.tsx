@@ -265,7 +265,7 @@ export default function Dashboard() {
                         <div className="text-center py-8">
                           <i className="fas fa-users text-4xl text-muted-foreground mb-4"></i>
                           <h3 className="text-lg font-semibold text-foreground mb-2">No matches yet</h3>
-                          <p className="text-muted-foreground">Complete your profile to find career doppelgängers with similar backgrounds.</p>
+                          <p className="text-muted-foreground">Complete your profile to find parallel identities with similar backgrounds.</p>
                         </div>
                       )}
 

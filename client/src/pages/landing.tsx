@@ -215,7 +215,7 @@ export default function Landing() {
               </div>
               <h3 className="text-xl font-semibold text-foreground mb-3">Get AI Analysis</h3>
               <p className="text-muted-foreground">
-                Receive detailed skill gap analysis, career doppelgänger matches, and personalized recommendations for your target role.
+                Receive detailed skill gap analysis, parallel identity matches, and personalized recommendations for your target role.
               </p>
             </div>
 

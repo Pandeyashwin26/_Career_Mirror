@@ -228,7 +228,7 @@ export default function FileUpload() {
           </li>
           <li className="flex items-center">
             <i className="fas fa-check text-green-500 mr-2 text-xs"></i>
-            Career doppelgänger matching will be enabled
+            Parallel identity matching will be enabled
           </li>
         </ul>
       </div>
