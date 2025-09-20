@@ -7,7 +7,7 @@ export default function Sidebar() {
     { href: "/", icon: "fas fa-home", label: "Dashboard" },
     { href: "/#classes", icon: "fas fa-search", label: "Find Classes" },
     { href: "/career-map", icon: "fas fa-route", label: "Career Map" },
-    { href: "/#doppelgangers", icon: "fas fa-users", label: "Doppelgängers" },
+    { href: "/#doppelgangers", icon: "fas fa-users", label: "Parallel Identities" },
     { href: "/achievements", icon: "fas fa-trophy", label: "Achievements" },
     { href: "/lifestyle", icon: "fas fa-chart-pie", label: "Lifestyle" },
     { href: "/profile", icon: "fas fa-user", label: "Profile" },

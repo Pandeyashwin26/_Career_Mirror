@@ -241,7 +241,7 @@ export default function Dashboard() {
 
                 {/* Career Doppelgängers Section */}
 <section id="doppelgangers" className="scroll-mt-24">
-                  <h2 className="text-2xl font-semibold text-foreground mb-6">Your Career Doppelgängers</h2>
+                  <h2 className="text-2xl font-semibold text-foreground mb-6">Your Parallel Identities</h2>
                   <Card className="border-border">
                     <CardHeader>
                       <CardTitle className="text-base">Similar Career Paths</CardTitle>

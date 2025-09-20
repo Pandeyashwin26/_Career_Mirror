@@ -116,7 +116,7 @@ export default function Landing() {
                 <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
                   <i className="fas fa-users text-primary text-xl"></i>
                 </div>
-                <CardTitle>Career Doppelgängers</CardTitle>
+                <CardTitle>Parallel Identities</CardTitle>
                 <CardDescription>
                   Find professionals with similar backgrounds and see their career trajectories to inspire your own path.
                 </CardDescription>
