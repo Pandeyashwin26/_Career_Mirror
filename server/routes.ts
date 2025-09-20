@@ -50,12 +50,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Auth routes
   app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
+      const claims = req.user?.claims || {};
+      const userId = claims.sub;
+      let user = await storage.getUser(userId);
+
+      // In local dev (ENABLE_LOCAL_AUTH), create a user record if it doesn't exist yet
+      if (!user && process.env.ENABLE_LOCAL_AUTH === 'true') {
+        user = await storage.upsertUser({
+          id: userId,
+          email: claims.email || 'developer@localhost.com',
+          firstName: claims.first_name || 'Local',
+          lastName: claims.last_name || 'Developer',
+          profileImageUrl: claims.profile_image_url || undefined,
+        });
+      }
+
       const profile = await storage.getUserProfile(userId);
       
       res.json({
-        ...user,
+        ...(user || {}),
         profile,
       });
     } catch (error) {

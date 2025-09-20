@@ -19,7 +19,8 @@ export class VectorSearchService {
       const userEmbedding = await storage.getProfileEmbedding(userId);
       
       if (!userEmbedding || !userEmbedding.embedding) {
-        throw new Error("User profile embedding not found. Please update your profile first.");
+        // No embedding yet (new user). Return empty results rather than failing the dashboard.
+        return [];
       }
 
       // Find similar profiles
