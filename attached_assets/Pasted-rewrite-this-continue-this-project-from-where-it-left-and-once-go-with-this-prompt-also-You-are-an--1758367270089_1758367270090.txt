@@ -1,0 +1,90 @@
+rewrite this continue this project from where it left and once go with this prompt also "You are an expert full-stack architect, AI engineer, and career-tech product strategist. I want you to design and help me implement a complete real-world web application called Career Mirror, a Personalized Career and Skills Advisor. Cover everything from architecture to tech stack, AI integration, data pipelines, and frontend UX. Ensure it’s practical and production-ready, not theoretical. Here are the detailed requirements:"
+________________________________________
+1. Core Features
+•	Career Doppelgänger Matching: Find users with similar profiles and show their career trajectories.
+•	Skill Gap Analysis: Identify missing skills for target roles, recommend learning resources (Coursera, Udemy, LinkedIn Learning APIs).
+•	Lifestyle Simulation: Estimate salary, work-life balance, travel, stress, and progression trade-offs.
+•	AI Career Guidance: Use GPT to give narrative advice (“future self” storytelling, next best steps).
+•	Interactive Career Map Dashboard: Visualize career paths, growth timelines, and skill-building plans.
+•	Continuous Feedback Loop: Users update progress (new skills/jobs) → system improves over time.
+________________________________________
+2. Architecture
+•	Frontend: Next.js + TailwindCSS + Framer Motion (animations) + Recharts (visuals).
+•	Backend: FastAPI (Python) or Node.js (Express).
+•	Database Layer:
+o	PostgreSQL → user profiles, skills, job mappings.
+o	Vector DB (Pinecone/Weaviate) → embeddings for similarity search.
+•	AI Layer:
+o	OpenAI GPT → personalized advice generation.
+o	HuggingFace / OpenAI embeddings → profile similarity.
+•	Storage: Cloud (AWS S3, GCP, or Supabase for user uploads).
+•	Authentication: Auth0 or Supabase Auth.
+•	Analytics: PostHog or Mixpanel for user insights.
+________________________________________
+3. Data Pipeline
+•	Data Sources: O*NET, ESCO, LinkedIn, Kaggle career datasets, Stack Overflow Dev Survey, GitHub profiles, Coursera APIs.
+•	Preprocessing:
+o	Skill extraction (spaCy/NLTK/OpenAI).
+o	Job title normalization (map to O*NET/ESCO).
+o	Embedding creation (HuggingFace, OpenAI).
+o	Optional synthetic data generation for rare roles.
+•	Storage:
+o	Structured data → PostgreSQL.
+o	Embeddings → Vector DB.
+________________________________________
+4. Matching & Recommendations
+1.	User submits CV/LinkedIn/skills.
+2.	System parses & normalizes profile.
+3.	Embeddings created → query vector DB for “career doppelgängers.”
+4.	Extract top 10 similar profiles → map their career trajectories.
+5.	Compare skills → highlight gaps.
+6.	Recommend courses/resources → API integrations.
+7.	Lifestyle simulation → salary (Glassdoor APIs), hours (survey data), stress (approximate indexes).
+8.	AI narrative → GPT generates guidance & “future self” view.
+________________________________________
+5. Frontend UX
+•	Career Dashboard (central hub).
+•	Tabs:
+o	Doppelgängers (similar people’s paths).
+o	Career Map (interactive timeline view).
+o	Skill Gaps (missing skills + recommended courses).
+o	Lifestyle Simulation (sliders to tweak trade-offs).
+•	Gamification: Badges for progress, career milestones.
+•	Notifications: Email/SMS reminders for skill goals.
+________________________________________
+6. Unique Differentiators
+•	Career Doppelgängers: “People like you became X, Y, Z.”
+•	Lifestyle Simulator: Beyond skills — see impact on salary, hours, stress.
+•	Future Self AI Narrative: GPT writes a “letter from your future self.”
+•	Dynamic Skill-Job Graph: Visual, interactive, evolving with user progress.
+________________________________________
+7. Implementation Roadmap (MVP → Scale)
+1.	MVP (3 months)
+o	User input (CV/skills).
+o	Profile parsing + embeddings.
+o	Basic similarity search (vector DB).
+o	Simple dashboard: Doppelgängers + skill gaps.
+2.	Phase 2 (6 months)
+o	Add lifestyle simulation (salary + stress).
+o	Course API integrations.
+o	AI narrative generation.
+3.	Phase 3 (12 months)
+o	Full interactive career maps.
+o	Community features (peer mentorship).
+o	Analytics + personalization at scale.
+________________________________________
+8. Guardrails
+•	Be transparent: predictions = guidance, not guarantees.
+•	Show data sources clearly.
+•	Label lifestyle simulation as approximate.
+•	Give users control over data privacy.
+________________________________________
+9. Deliverables
+•	Full-stack web app (Next.js + FastAPI).
+•	PostgreSQL + Vector DB schema.
+•	Data pipeline scripts (ETL for O*NET, Kaggle, LinkedIn, etc.).
+•	AI integration endpoints (profile parsing, similarity, narrative generation).
+•	Frontend components (career dashboard, maps, skill gap cards, lifestyle simulation graphs).
+________________________________________
+👉 Instruction to AI (you, ChatGPT):
+Now, generate step-by-step implementation plans, code templates, database schemas, and integration strategies for this application so it can be developed as a real-world product. Ensure clarity, modularity, and scalability.
