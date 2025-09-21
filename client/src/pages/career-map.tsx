@@ -7,6 +7,7 @@ import { Progress } from "@/components/ui/progress";
 import Navigation from "@/components/Navigation";
 import Sidebar from "@/components/Sidebar";
 import { motion } from "framer-motion";
+import { formatINR, usdToInr, toINRRange } from "@/lib/currency";
 
 interface CareerNode {
   id: string;
@@ -263,9 +264,9 @@ export default function CareerMap() {
 
                           {selectedNode.salary && (
                             <div>
-                              <p className="text-sm font-medium">Salary</p>
+                              <p className="text-sm font-medium">Salary (INR)</p>
                               <p className="text-lg font-semibold text-primary">
-                                ${selectedNode.salary.toLocaleString()}
+                                {formatINR(usdToInr(selectedNode.salary || 0))}
                               </p>
                             </div>
                           )}
@@ -324,7 +325,7 @@ export default function CareerMap() {
                               
                               <div className="text-sm text-muted-foreground mb-2">
                                 <p>Timeframe: {path.timeframe}</p>
-                                <p>Salary: {path.salaryRange}</p>
+                                <p>Salary: {toINRRange(path.salaryRange || '')}</p>
                               </div>
 
                               <div className="mb-2">

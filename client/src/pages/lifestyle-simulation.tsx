@@ -14,6 +14,7 @@ import { isUnauthorizedError } from "@/lib/authUtils";
 import Navigation from "@/components/Navigation";
 import Sidebar from "@/components/Sidebar";
 import { motion } from "framer-motion";
+import { formatINR, usdToInr } from "@/lib/currency";
 
 interface LifestylePreferences {
   salaryImportance: number;
@@ -336,17 +337,26 @@ export default function LifestyleSimulation() {
                                   <p className="text-lg font-semibold" data-testid="text-salary-p25">
                                     ${simulationData.salary.p25.toLocaleString()}
                                   </p>
+                                  <p className="text-xs text-muted-foreground" data-testid="text-salary-p25-inr">
+                                    {formatINR(usdToInr(simulationData.salary.p25))}
+                                  </p>
                                 </div>
                                 <div>
                                   <p className="text-sm text-muted-foreground">Median</p>
                                   <p className="text-lg font-semibold text-primary" data-testid="text-salary-median">
                                     ${simulationData.salary.median.toLocaleString()}
                                   </p>
+                                  <p className="text-xs text-muted-foreground" data-testid="text-salary-median-inr">
+                                    {formatINR(usdToInr(simulationData.salary.median))}
+                                  </p>
                                 </div>
                                 <div>
                                   <p className="text-sm text-muted-foreground">75th Percentile</p>
                                   <p className="text-lg font-semibold" data-testid="text-salary-p75">
                                     ${simulationData.salary.p75.toLocaleString()}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground" data-testid="text-salary-p75-inr">
+                                    {formatINR(usdToInr(simulationData.salary.p75))}
                                   </p>
                                 </div>
                               </div>

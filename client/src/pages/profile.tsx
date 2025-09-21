@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import AsyncCombo from "@/components/AsyncCombo";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { isUnauthorizedError } from "@/lib/authUtils";
@@ -284,48 +285,61 @@ export default function Profile() {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2">
                           <Label htmlFor="currentRole">Current Role</Label>
-                          <Input
-                            id="currentRole"
+<AsyncCombo
                             value={profileData.currentRole}
-                            onChange={(e) => setProfileData({ ...profileData, currentRole: e.target.value })}
-                            placeholder="e.g., Software Engineer"
-                            data-testid="input-current-role"
+                            onChange={(v) => setProfileData({ ...profileData, currentRole: v })}
+                            fetchUrl="/api/suggest/roles?q="
+                            placeholder="Search current role..."
                           />
                         </div>
 
                         <div className="space-y-2">
                           <Label htmlFor="targetRole">Target Role</Label>
-                          <Input
-                            id="targetRole"
+<AsyncCombo
                             value={profileData.targetRole}
-                            onChange={(e) => setProfileData({ ...profileData, targetRole: e.target.value })}
-                            placeholder="e.g., Senior Software Engineer"
-                            data-testid="input-target-role"
+                            onChange={(v) => setProfileData({ ...profileData, targetRole: v })}
+                            fetchUrl="/api/suggest/roles?q="
+                            placeholder="Search target role..."
                           />
                         </div>
 
                         <div className="space-y-2">
                           <Label htmlFor="experience">Years of Experience</Label>
-                          <Input
-                            id="experience"
-                            type="number"
-                            min="0"
-                            max="50"
+                          <Select
                             value={profileData.experience}
-                            onChange={(e) => setProfileData({ ...profileData, experience: e.target.value })}
-                            placeholder="e.g., 3"
-                            data-testid="input-experience"
-                          />
+                            onValueChange={(v) => setProfileData({ ...profileData, experience: v })}
+                          >
+                            <SelectTrigger id="experience" data-testid="select-experience">
+                              <SelectValue placeholder="Select years" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="0">0</SelectItem>
+                              <SelectItem value="1">1</SelectItem>
+                              <SelectItem value="2">2</SelectItem>
+                              <SelectItem value="3">3</SelectItem>
+                              <SelectItem value="4">4</SelectItem>
+                              <SelectItem value="5">5</SelectItem>
+                              <SelectItem value="6">6</SelectItem>
+                              <SelectItem value="7">7</SelectItem>
+                              <SelectItem value="8">8</SelectItem>
+                              <SelectItem value="9">9</SelectItem>
+                              <SelectItem value="10">10</SelectItem>
+                              <SelectItem value="12">12</SelectItem>
+                              <SelectItem value="15">15</SelectItem>
+                              <SelectItem value="20">20</SelectItem>
+                              <SelectItem value="25">25</SelectItem>
+                              <SelectItem value="30">30</SelectItem>
+                            </SelectContent>
+                          </Select>
                         </div>
 
                         <div className="space-y-2">
                           <Label htmlFor="location">Location</Label>
-                          <Input
-                            id="location"
+<AsyncCombo
                             value={profileData.location}
-                            onChange={(e) => setProfileData({ ...profileData, location: e.target.value })}
-                            placeholder="e.g., San Francisco, CA"
-                            data-testid="input-location"
+                            onChange={(v) => setProfileData({ ...profileData, location: v })}
+                            fetchUrl="/api/suggest/locations?q="
+                            placeholder="Search location..."
                           />
                         </div>
 

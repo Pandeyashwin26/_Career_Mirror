@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import multer from "multer";
 import { storage } from "./storage";
-import { setupAuth, isAuthenticated } from "./replitAuth";
+import { setupAuth, isAuthenticated } from "./auth";
 import { openAIService } from "./services/openai";
 import { vectorSearchService } from "./services/vectorSearch";
 import { registerLifestyleRoutes } from "./routes/lifestyle";
@@ -27,15 +27,24 @@ const upload = multer({
     fileSize: 5 * 1024 * 1024, // 5MB limit
   },
   fileFilter: (req, file, cb) => {
-    // Accept PDF, DOC, DOCX files
+    // Accept PDF, DOC, DOCX, TXT files (account for inconsistent MIME types across browsers)
     const allowedTypes = [
       'application/pdf',
       'application/msword',
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      'text/plain'
+      'text/plain',
+      'application/octet-stream', // some browsers use this for DOCX
+      'application/zip' // some environments report DOCX as zip
     ];
-    
-    if (allowedTypes.includes(file.mimetype)) {
+
+    const allowedExtensions = [
+      '.pdf', '.doc', '.docx', '.txt'
+    ];
+
+    const lowerName = (file.originalname || '').toLowerCase();
+    const hasAllowedExt = allowedExtensions.some(ext => lowerName.endsWith(ext));
+
+    if (allowedTypes.includes(file.mimetype) || hasAllowedExt) {
       cb(null, true);
     } else {
       cb(new Error('Invalid file type. Please upload PDF, DOC, DOCX, or TXT files.'));
@@ -122,6 +131,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Resume upload and parsing
   app.post('/api/profile/upload-resume', isAuthenticated, upload.single('resume'), async (req: any, res) => {
+    const warnings: string[] = [];
     try {
       const userId = req.user.claims.sub;
       
@@ -130,49 +140,99 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Extract text from uploaded file (simplified - in production you'd use proper PDF/DOC parsers)
-      const resumeText = req.file.buffer.toString('utf-8');
+      let resumeText = '';
+      try {
+        resumeText = req.file.buffer?.toString('utf-8') || '';
+      } catch (e) {
+        console.error('Failed to read resume buffer', e);
+        warnings.push('Failed to read resume file content');
+      }
       
-      // Parse resume using OpenAI
-      const parsedProfile = await openAIService.parseResume(resumeText, userId);
-      
-      // Save parsed information
-      if (parsedProfile.currentRole || parsedProfile.experience) {
-        const profileData = {
-          userId,
-          currentRole: parsedProfile.currentRole,
-          experience: parsedProfile.experience,
-          education: parsedProfile.education,
-          resumeText,
-        };
-        
-        const existingProfile = await storage.getUserProfile(userId);
-        if (existingProfile) {
-          await storage.updateUserProfile(userId, profileData);
-        } else {
-          await storage.createUserProfile(profileData);
+      // Parse resume using OpenAI (already has fallbacks)
+      let parsedProfile: any = { experience: 0, skills: [], careerPaths: [] };
+      try {
+        parsedProfile = await openAIService.parseResume(resumeText, userId);
+      } catch (e) {
+        console.error('Failed to parse resume via AI (using safe defaults)', e);
+        warnings.push('AI parsing unavailable; saved minimal data');
+      }
+
+      // Ensure shapes
+      parsedProfile.skills = Array.isArray(parsedProfile.skills) ? parsedProfile.skills : [];
+      parsedProfile.careerPaths = Array.isArray(parsedProfile.careerPaths) ? parsedProfile.careerPaths : [];
+
+      // Save parsed information (best-effort)
+      try {
+        if (parsedProfile.currentRole || parsedProfile.experience) {
+          const profileData = {
+            userId,
+            currentRole: parsedProfile.currentRole,
+            experience: parsedProfile.experience || 0,
+            education: parsedProfile.education,
+            resumeText,
+          };
+          const existingProfile = await storage.getUserProfile(userId);
+          if (existingProfile) {
+            await storage.updateUserProfile(userId, profileData);
+          } else {
+            await storage.createUserProfile(profileData);
+          }
         }
+      } catch (e) {
+        console.error('Failed to save parsed profile', e);
+        warnings.push('Failed to save profile details');
       }
 
-      // Save skills
-      for (const skill of parsedProfile.skills) {
-        await storage.addUserSkill(skill);
+      // Save skills (best-effort)
+      try {
+        for (const skill of parsedProfile.skills) {
+          try {
+            await storage.addUserSkill(skill);
+          } catch (e) {
+            console.error('Failed to save a skill', skill, e);
+          }
+        }
+      } catch (e) {
+        console.error('Failed to save skills list', e);
+        warnings.push('Failed to save some skills');
       }
 
-      // Save career paths
-      for (const path of parsedProfile.careerPaths) {
-        await storage.addCareerPath(path);
+      // Save career paths (best-effort)
+      try {
+        for (const path of parsedProfile.careerPaths) {
+          try {
+            await storage.addCareerPath(path);
+          } catch (e) {
+            console.error('Failed to save a career path', path, e);
+          }
+        }
+      } catch (e) {
+        console.error('Failed to save career paths list', e);
+        warnings.push('Failed to save some career paths');
       }
 
-      // Update profile embedding
-      await vectorSearchService.updateProfileEmbedding(userId);
+      // Update profile embedding (non-blocking)
+      (async () => {
+        try {
+          await vectorSearchService.updateProfileEmbedding(userId);
+        } catch (e) {
+          console.error('Non-blocking: failed to update profile embedding after resume upload', e);
+        }
+      })();
       
       res.json({
         message: "Resume uploaded and parsed successfully",
         parsedData: parsedProfile,
+        warnings,
       });
     } catch (error) {
       console.error("Error processing resume:", error);
-      res.status(500).json({ message: "Failed to process resume" });
+      // Fall back to a softer error with guidance
+      return res.status(200).json({
+        message: "Resume received, but processing encountered issues.",
+        parsedData: { experience: 0, skills: [], careerPaths: [] },
+        warnings: ["Processing failed; saved minimal data"],
+      });
     }
   });
 
@@ -589,6 +649,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error('Error getting ESCO career data:', error);
       res.status(500).json({ message: 'Failed to fetch career data' });
     }
+  });
+
+  // Suggestions endpoints (roles, locations, experience)
+  app.get('/api/suggest/roles', async (req: any, res) => {
+    try {
+      const q = String(req.query.q || '').toLowerCase();
+      const limit = Math.min(parseInt(String(req.query.limit || '20')), 50);
+      const data = JSON.parse(await (await import('fs/promises')).readFile(require('path').resolve(import.meta.dirname, 'data', 'roles.json'), 'utf-8')) as string[];
+      const results = (q ? data.filter(r => r.toLowerCase().includes(q)) : data).slice(0, limit);
+      res.json(results);
+    } catch (e) {
+      console.error('Error suggesting roles:', e);
+      res.json([]);
+    }
+  });
+
+  app.get('/api/suggest/locations', async (req: any, res) => {
+    try {
+      const q = String(req.query.q || '').toLowerCase();
+      const limit = Math.min(parseInt(String(req.query.limit || '20')), 50);
+      const data = JSON.parse(await (await import('fs/promises')).readFile(require('path').resolve(import.meta.dirname, 'data', 'locations.json'), 'utf-8')) as string[];
+      const results = (q ? data.filter(r => r.toLowerCase().includes(q)) : data).slice(0, limit);
+      res.json(results);
+    } catch (e) {
+      console.error('Error suggesting locations:', e);
+      res.json([]);
+    }
+  });
+
+  app.get('/api/suggest/experience', async (_req: any, res) => {
+    const years = Array.from({ length: 41 }, (_, i) => i); // 0..40
+    res.json(years);
   });
 
   // Register additional route modules

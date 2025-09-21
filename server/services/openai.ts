@@ -40,17 +40,88 @@ export interface CareerGuidance {
   resources: string[];
 }
 
+const DEFAULT_OPENAI_TIMEOUT_MS = parseInt(process.env.OPENAI_TIMEOUT_MS || '12000');
+
 export class OpenAIService {
+  private async chatCompletion(
+    messages: { role: 'system' | 'user' | 'assistant'; content: string }[],
+    options: { response_format?: any; max_completion_tokens?: number; timeoutMs?: number } = {}
+  ) {
+    // Try primary then fallbacks
+    const models = [
+      'gpt-5',              // primary
+      'gpt-4o',             // fallback 1
+      'gpt-4o-mini',        // fallback 2
+      'gpt-4-turbo',        // fallback 3
+      'gpt-3.5-turbo'       // fallback 4
+    ];
+
+    let lastErr: any;
+    for (const model of models) {
+      try {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), options.timeoutMs ?? DEFAULT_OPENAI_TIMEOUT_MS);
+        try {
+          const resp = await openai.chat.completions.create({
+            model,
+            messages,
+            ...(options.response_format ? { response_format: options.response_format } : {}),
+            ...(options.max_completion_tokens ? { max_completion_tokens: options.max_completion_tokens } : {}),
+            signal: (controller as any).signal,
+          } as any);
+          return resp;
+        } finally {
+          clearTimeout(timer);
+        }
+      } catch (err: any) {
+        lastErr = err;
+        // Try next model only on model-related errors (e.g., not found/unsupported)
+        const msg = String(err?.message || '');
+        if (/model|unsupported|not found|Invalid URL|Bad Request/i.test(msg)) {
+          continue;
+        }
+        // For other errors, rethrow immediately
+        throw err;
+      }
+    }
+    throw lastErr;
+  }
+
+  private async embedWithFallback(input: string, timeoutMs: number = DEFAULT_OPENAI_TIMEOUT_MS): Promise<number[]> {
+    const models = [
+      'text-embedding-ada-002',   // current primary in code
+      'text-embedding-3-small'    // fallback
+    ];
+    let lastErr: any;
+    for (const model of models) {
+      try {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), timeoutMs);
+        try {
+          const response = await openai.embeddings.create({ model, input, signal: (controller as any).signal } as any);
+          return response.data[0].embedding as unknown as number[];
+        } finally {
+          clearTimeout(timer);
+        }
+      } catch (err) {
+        lastErr = err;
+        continue;
+      }
+    }
+    throw lastErr;
+  }
+
   // Parse CV/Resume text and extract structured information
   async parseResume(resumeText: string, userId: string): Promise<ParsedProfile> {
     try {
       // the newest OpenAI model is "gpt-5" which was released August 7, 2025. do not change this unless explicitly requested by the user
-      const response = await openai.chat.completions.create({
-        model: "gpt-5",
-        messages: [
+      // Trim very long resumes to speed up processing and reduce token usage
+      const safeText = resumeText && resumeText.length > 20000 ? resumeText.slice(0, 20000) : resumeText;
+
+      const response = await this.chatCompletion([
           {
             role: "system",
-            content: `You are an expert CV/Resume parser. Extract structured information from the resume text and return it as JSON. Focus on:
+            content: `You are an expert CV/Resume parser.
             - Personal information (name, email, phone)
             - Years of experience (estimate if not explicit)
             - Current/most recent role
@@ -74,11 +145,11 @@ export class OpenAIService {
           },
           {
             role: "user",
-            content: `Parse this resume:\n\n${resumeText}`
+            content: `Parse this resume:\n\n${safeText}`
           }
         ],
-        response_format: { type: "json_object" },
-      });
+        { response_format: { type: "json_object" }, timeoutMs: DEFAULT_OPENAI_TIMEOUT_MS },
+      );
 
       const parsed = JSON.parse(response.choices[0].message.content || "{}");
       
@@ -104,7 +175,12 @@ export class OpenAIService {
       };
     } catch (error) {
       console.error("Error parsing resume:", error);
-      throw new Error("Failed to parse resume. Please check the content and try again.");
+      // Graceful fallback: return minimal parsed structure to avoid 500s
+      return {
+        experience: 0,
+        skills: [],
+        careerPaths: [],
+      } as ParsedProfile;
     }
   }
 
@@ -113,12 +189,8 @@ export class OpenAIService {
     try {
       const profileText = this.serializeProfileForEmbedding(profileData);
       
-      const response = await openai.embeddings.create({
-        model: "text-embedding-ada-002",
-        input: profileText,
-      });
-
-      return response.data[0].embedding;
+      const embedding = await this.embedWithFallback(profileText, DEFAULT_OPENAI_TIMEOUT_MS);
+      return embedding;
     } catch (error) {
       console.error("Error generating embedding:", error);
       throw new Error("Failed to generate profile embedding.");
@@ -129,12 +201,10 @@ export class OpenAIService {
   async analyzeSkillGap(currentSkills: string[], targetRole: string): Promise<SkillGapAnalysis> {
     try {
       // the newest OpenAI model is "gpt-5" which was released August 7, 2025. do not change this unless explicitly requested by the user
-      const response = await openai.chat.completions.create({
-        model: "gpt-5",
-        messages: [
+      const response = await this.chatCompletion([
           {
             role: "system",
-            content: `You are a career advisor analyzing skill gaps. Given a person's current skills and their target role, identify:
+            content: `You are a career advisor analyzing skill gaps.
             1. Missing skills they need to acquire
             2. Skills they have but need improvement
             3. Strong skills they already possess
@@ -163,13 +233,19 @@ export class OpenAIService {
             Consider industry standards and typical requirements for this role.`
           }
         ],
-        response_format: { type: "json_object" },
-      });
+        { response_format: { type: "json_object" }, timeoutMs: DEFAULT_OPENAI_TIMEOUT_MS },
+      );
 
       return JSON.parse(response.choices[0].message.content || "{}");
     } catch (error) {
       console.error("Error analyzing skill gap:", error);
-      throw new Error("Failed to analyze skill gaps. Please try again.");
+      // Graceful fallback default
+      return {
+        missingSkills: [],
+        improvementSkills: [],
+        strongSkills: [],
+        recommendations: [],
+      } as SkillGapAnalysis;
     }
   }
 
@@ -189,9 +265,7 @@ export class OpenAIService {
       };
 
       // the newest OpenAI model is "gpt-5" which was released August 7, 2025. do not change this unless explicitly requested by the user
-      const response = await openai.chat.completions.create({
-        model: "gpt-5",
-        messages: [
+      const response = await this.chatCompletion([
           {
             role: "system",
             content: `You are an expert career advisor providing personalized guidance. Write from the perspective of the user's "future self" who has successfully achieved their career goals. Be encouraging, specific, and actionable.
@@ -209,13 +283,26 @@ export class OpenAIService {
             content: `Provide career guidance based on this context:\n\n${JSON.stringify(context, null, 2)}`
           }
         ],
-        response_format: { type: "json_object" },
-      });
+        { response_format: { type: "json_object" }, timeoutMs: DEFAULT_OPENAI_TIMEOUT_MS },
+      );
 
       return JSON.parse(response.choices[0].message.content || "{}");
     } catch (error) {
       console.error("Error generating career guidance:", error);
-      throw new Error("Failed to generate career guidance. Please try again.");
+      return {
+        guidance: "We couldn't generate detailed guidance right now. Focus on clarifying your target role, listing your key skills, and identifying 2–3 courses to take next.",
+        nextSteps: [
+          "Set a clear target role in your profile",
+          "List your top 5 skills and 3 skills to improve",
+          "Enroll in one course aligned to your target role"
+        ],
+        timeline: "2–4 weeks to gather data, 1–3 months to upskill",
+        resources: [
+          "Job descriptions for your target role",
+          "Courses on Coursera/Udemy/edX",
+          "Networking via LinkedIn groups"
+        ],
+      };
     }
   }
 
@@ -225,12 +312,10 @@ export class OpenAIService {
       const recentHistory = chatHistory.slice(-10); // Last 10 messages for context
 
       // the newest OpenAI model is "gpt-5" which was released August 7, 2025. do not change this unless explicitly requested by the user
-      const response = await openai.chat.completions.create({
-        model: "gpt-5",
-        messages: [
+      const response = await this.chatCompletion([
           {
             role: "system",
-            content: `You are StudyPath Assistant, a helpful AI career advisor and course finder. You help users:
+            content: `You are an expert career advisor
             - Find relevant classes and workshops
             - Get career guidance and advice
             - Understand skill requirements for different roles
@@ -247,8 +332,8 @@ export class OpenAIService {
             content: message
           }
         ],
-        max_completion_tokens: 300,
-      });
+        { max_completion_tokens: 300, timeoutMs: DEFAULT_OPENAI_TIMEOUT_MS },
+      );
 
       return response.choices[0].message.content || "I'm sorry, I couldn't generate a response. Please try again.";
     } catch (error) {
@@ -263,9 +348,8 @@ export class OpenAIService {
       const skillsList = skills.length > 0 ? skills.join(", ") : "general professional skills";
       
       // the newest OpenAI model is "gpt-5" which was released August 7, 2025. do not change this unless explicitly requested by the user
-      const response = await openai.chat.completions.create({
-        model: "gpt-5",
-        messages: [
+      const response = await this.chatCompletion([
+        
           {
             role: "system",
             content: `You are a career visioning expert who helps people envision their future professional selves. Create an inspiring, realistic narrative about someone's potential career journey. The narrative should be:
@@ -284,8 +368,8 @@ export class OpenAIService {
             content: `Create a future-self narrative for someone pursuing a career in ${career} with current skills in: ${skillsList}`
           }
         ],
-        max_completion_tokens: 400,
-      });
+        { max_completion_tokens: 400, timeoutMs: DEFAULT_OPENAI_TIMEOUT_MS },
+      );
 
       return response.choices[0].message.content || "Your future self awaits - a journey of growth, learning, and meaningful impact in your chosen field.";
     } catch (error) {

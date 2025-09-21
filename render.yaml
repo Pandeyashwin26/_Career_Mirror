@@ -2,23 +2,24 @@ services:
   - type: web
     name: career-mirror
     runtime: node
-    plan: starter
+    plan: free
     buildCommand: npm install && npm run build
     startCommand: npm start
     healthCheckPath: /health
     envVars:
       - key: NODE_ENV
         value: production
-      - key: PORT
-        value: 10000
-      - key: DATABASE_URL
-        fromDatabase:
-          name: career-mirror-db
-          property: connectionString
+      - key: USE_SUPABASE_AUTH
+        value: true
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: VITE_SUPABASE_URL
+        sync: false
+      - key: VITE_SUPABASE_ANON_KEY
+        sync: false
       - key: SESSION_SECRET
         generateValue: true
-        
-databases:
-  - name: career-mirror-db
-    databaseName: career_mirror
-    plan: starter
