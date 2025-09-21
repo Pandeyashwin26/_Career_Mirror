@@ -14,8 +14,11 @@ export async function apiRequest(
   url: string,
   data?: unknown | undefined,
 ): Promise<Response> {
-  const { data: sessionData } = await supabase.auth.getSession();
-  const token = sessionData.session?.access_token;
+  let token: string | undefined;
+  if (supabase) {
+    const { data: sessionData } = await supabase.auth.getSession();
+    token = sessionData.session?.access_token;
+  }
   const headers: Record<string, string> = {};
   if (data) headers['Content-Type'] = 'application/json';
   if (token) headers['Authorization'] = `Bearer ${token}`;
@@ -51,8 +54,11 @@ export const getQueryFn: <T>(options: {
       if (qs) url += (url.includes("?") ? "&" : "?") + qs;
     }
 
-    const { data: sessionData } = await supabase.auth.getSession();
-    const token = sessionData.session?.access_token;
+    let token: string | undefined;
+    if (supabase) {
+      const { data: sessionData } = await supabase.auth.getSession();
+      token = sessionData.session?.access_token;
+    }
     const res = await fetch(url, {
       credentials: "include",
       headers: token ? { Authorization: `Bearer ${token}` } : undefined,
